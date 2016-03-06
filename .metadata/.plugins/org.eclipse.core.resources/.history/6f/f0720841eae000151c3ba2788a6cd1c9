@@ -1,0 +1,12 @@
+package javatsp_sa;
+
+public class Edge {
+
+	private int city1;
+	private int city2;
+	
+	public Edge(int c1, int c2){
+		city1 = c1;
+		city2 = c2;
+	}
+}

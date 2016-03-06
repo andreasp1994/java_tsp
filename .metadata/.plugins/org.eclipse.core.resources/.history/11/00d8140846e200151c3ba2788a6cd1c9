@@ -1,0 +1,314 @@
+/**
+ * Traveling Salesman Problem - Simualated Annealing approach
+ * 
+ * References:
+ * http://mcajournal.cbu.edu.tr/volume18_3/13.pdf 
+ * 
+ * Author: Antreas Pogiatzis
+ */
+
+package javatsp_sa;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
+
+import javatsp.TSP;
+import linkedlist.IntLinkedList;
+
+public class SimulatedAnnealingTsp {
+
+	private static final double initial_temp = 25000;
+	private static final double cooling_rate = 0.00001;
+	private static final double absolute_zero = 1;
+	
+	private static Random randEngine;
+	
+	public static void main(String [] args)
+	{
+		randEngine = new Random(System.currentTimeMillis());
+		
+		try {
+			TSP myTSP = new TSP("C:\\g7k.tsp");
+			
+			// Create intial solution
+	        Tour currentSolution = new Tour(myTSP);
+	        
+	        //Create global edge list
+	        ArrayList<Edge> edges = new ArrayList<Edge>();
+	        for (int i = 0;i<currentSolution.size();i++){
+	        	for (int j = i;j<currentSolution.size;j++){
+	        		if (i != j) {
+	        			Edge edge = new Edge(currentSolution.getCity(i), currentSolution.getCity(j), myTSP);
+	        			edges.add(edge);
+	        		}
+	        	}
+	        }
+	        Collections.sort(edges);
+	        int maxDistance = (int) edges.get(edges.size()-1).getDistance();
+	        
+	        //findOverlaps(edges, myTSP);
+	        
+	        //calculate total distance ( used for roulette wheel);
+	        int sumDistance = 0;
+	        for(int i = 0;i<edges.size();i++) {
+	        	sumDistance += (int) ((maxDistance - edges.get(i).getDistance()) + 1);
+	        }
+	        
+	        // Set as current best
+	        Tour best = new Tour(currentSolution);
+
+	        double prevbestdistance;
+	        int plateaucounter = 0;
+	        int globalplateaucounter = 0;
+	        
+	        double temp = initial_temp;
+	        while(temp > absolute_zero){
+	        	// Create new neighbour tour
+	            Tour newSolution = new Tour(currentSolution);
+	            
+//	            int numberofcities = (int) ((newSolution.size()*temp)/initial_temp)/2;
+//	            if (temp == initial_temp) initial_cities = numberofcities;
+//	            numberofcities = initial_cities - numberofcities;
+//	            if (numberofcities == 0) numberofcities = 1;
+	            
+	           
+//	            
+//	            //randomSwap(currentSolution,1);     
+	            
+	            rsmMutate(newSolution);
+	            
+	            if (best.getDistance() < 14000 && plateaucounter >= 5)
+	            {
+	            	plateaucounter = 0;
+	            	Edge edge;
+			        //if (globalplateaucounter < edges.size()){
+			        	edge = rouletteWheelSelection(edges, maxDistance, sumDistance);
+			        	
+			        	if (Math.random() < 0.5)
+		            		newSolution.connectCities(edge.getCity1(),edge.getCity2());
+		            	else
+		            		newSolution.connectCities(edge.getCity2(),edge.getCity1());
+			        //}
+	            }
+	            
+	            // Get energy of solutions
+	            double currentEnergy = currentSolution.getDistance();
+	            double neighbourEnergy = newSolution.getDistance();
+	            
+	            // Decide if we should accept the neighbour
+	            if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > Math.random()) {
+	            	currentSolution = new Tour(newSolution);	
+	            }
+
+	            prevbestdistance = best.getDistance();
+	            // Keep track of the best solution found
+	            if (currentSolution.getDistance() < best.getDistance()) {
+	                best =  new Tour(currentSolution);
+	            }
+	            if (prevbestdistance == best.getDistance()) {
+	            	plateaucounter++;
+	            	globalplateaucounter++;
+	            }
+	            
+	            
+	            // Cool system
+	            temp *= 1-cooling_rate;
+	            
+	            System.out.println("---------------------");
+	            System.out.println("Current temp: "+temp);
+	            System.out.println("Best distance achieved: " + best.getDistance());
+	            
+	            if (best.getDistance() > 13000 && temp<2){
+	            	temp = initial_temp;
+	            	currentSolution = new Tour(myTSP);
+	            	best = new Tour(currentSolution);
+	            	plateaucounter = 0;
+	            }
+
+	        }
+	        
+	        best.toFile("out.txt");
+	        myTSP.plot(best.getIntArray());
+	        
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private static Edge rouletteWheelSelection(ArrayList<Edge> edges, int maxDistance, int sumDistance){
+		
+		int wheelStop = randEngine.nextInt((int) sumDistance+2);
+		int wheel = 0;
+		for(int i = 0;i<edges.size();i++){
+			wheel += (int) (maxDistance - edges.get(i).getDistance()) + 1;
+			//System.out.println("Wheel:" + wheel + " added:" + ((maxDistance - edges.get(i).getDistance()) + 1));
+			
+			if (wheel >= wheelStop) {
+				//System.out.println("WheelStop:"+wheelStop);
+				return edges.get(i);
+			}
+		}
+		System.out.println("Wheel out of bounds...");
+		return null;
+	}
+	
+	/**
+	 * Geometry functions for overlapping
+	 */
+	private static boolean onSegment(int p, int q, int r,TSP tsp){
+		if (tsp.getCityX(q) <= Math.max(tsp.getCityX(p), tsp.getCityX(r)) && tsp.getCityX(q) >= Math.min(tsp.getCityX(p), tsp.getCityX(r)) &&
+				tsp.getCityY(q) <= Math.max(tsp.getCityY(p), tsp.getCityY(r)) && tsp.getCityY(q) >= Math.min(tsp.getCityY(p), tsp.getCityY(r)))
+		       return true;
+		 
+		    return false;
+	}
+	
+	private static int orientation(int p, int q, int r, TSP tsp){
+		int val = (tsp.getCityY(q) - tsp.getCityY(p)) * (tsp.getCityY(r) - tsp.getCityY(q)) -
+	              (tsp.getCityX(q) - tsp.getCityX(p)) * (tsp.getCityX(r) - tsp.getCityX(q));
+	 
+	    if (val == 0) return 0;  // colinear
+	 
+	    return (val > 0)? 1: 2; // clock or counterclock wise
+	}
+	
+	private static boolean doIntersect(Edge e1, Edge e2, TSP tsp){
+		
+		int p1 = e1.getCity1();
+		int p2 = e1.getCity2();
+		int q1 = e2.getCity1();
+		int q2 = e2.getCity2();
+		
+		// Find the four orientations needed for general and
+	    // special cases
+	    int o1 = orientation(p1, q1, p2, tsp);
+	    int o2 = orientation(p1, q1, q2, tsp);
+	    int o3 = orientation(p2, q2, p1, tsp);
+	    int o4 = orientation(p2, q2, q1, tsp);
+	 
+	    // General case
+	    if (o1 != o2 && o3 != o4)
+	        return true;
+	 
+	    // Special Cases
+	    // p1, q1 and p2 are colinear and p2 lies on segment p1q1
+	    if (o1 == 0 && onSegment(p1, p2, q1, tsp)) return true;
+	 
+	    // p1, q1 and p2 are colinear and q2 lies on segment p1q1
+	    if (o2 == 0 && onSegment(p1, q2, q1, tsp)) return true;
+	 
+	    // p2, q2 and p1 are colinear and p1 lies on segment p2q2
+	    if (o3 == 0 && onSegment(p2, p1, q2, tsp)) return true;
+	 
+	     // p2, q2 and q1 are colinear and q1 lies on segment p2q2
+	    if (o4 == 0 && onSegment(p2, q1, q2, tsp)) return true;
+	 
+	    return false; // Doesn't fall in any of the above cases
+		
+	}
+	
+	private static void findOverlaps(ArrayList<Edge> tourEdges, TSP tsp){
+		//create edge list for current tour
+//        ArrayList<Edge> tourEdges = new ArrayList<Edge>();
+//        for(int i = 0;i<tour.size();i++){
+//        	if (i<tour.size()-1)  tourEdges.add(new Edge(tour.getCity(i), 
+//        						tour.getCity(i+1),tsp));
+//        	else tourEdges.add(new Edge(tour.getCity(i), 
+//					tour.getCity(0),tsp));	
+//        }
+        
+        //find overlapping edges
+        for(int i = 0;i<tourEdges.size();i++){
+        	for (int j = i;j<tourEdges.size();j++){
+        		if (i!=j && doIntersect(tourEdges.get(i),tourEdges.get(j),tsp)){
+        			System.out.println(tourEdges.size());
+        			tourEdges.get(i).setOverlapping(tourEdges.get(j));
+        			tourEdges.get(j).setOverlapping(tourEdges.get(i));
+        		}
+        	}
+        }
+	}
+	/*
+	 * End of geometry functions
+	 * 
+	 */
+	
+	private static void rsmMutate(Tour tour){
+		rsmMutate(tour, tour.size());
+	}
+	
+	private static void rsmMutate(Tour tour, int maxlength){
+		
+		IntLinkedList pathList = new IntLinkedList(tour.getIntArray());
+		
+		if (maxlength > pathList.size()) {
+			System.out.println("maxlength has to be less or equal than tour size."); 
+			return;
+		}
+		
+		int length = randEngine.nextInt(maxlength + 1);
+		int start = randEngine.nextInt(pathList.size() - length + 1);
+		int end = randEngine.nextInt(length + 1) + start;
+		
+//		System.out.println("Start: " + start + " End:" + end);
+//		Scanner sc = new Scanner(System.in);
+//		sc.next();
+//		
+		if (start==end) return;
+		
+		IntLinkedList head = pathList.sublist(0, start);
+		IntLinkedList mid = pathList.sublist(start, end);
+		IntLinkedList tail = pathList.sublist(end, pathList.size());
+		
+		mid = mid.reverse();
+	
+		//System.out.println(" Start:" + start + " end:"+ end);
+		
+		mid.append(tail);
+		if (!head.isEmpty()){
+			head.append(mid);
+			tour.setIntArray(head.toArray());
+		} else {
+			tour.setIntArray(mid.toArray());
+		}
+	}
+	
+	//Default: Swaps 2 random cities 1 time
+	private static void randomSwap(Tour tour){
+		randomSwap(tour,1);
+	}
+	
+	//Swaps 2 random cities n times
+	private static void randomSwap(Tour tour,int times){
+		for(int i = 0;i<times;i++){
+    			int tourPos1 = (int) (tour.size() * Math.random());
+ 	            int tourPos2 = (int) (tour.size() * Math.random());
+        		
+        		swapcities(tour, tourPos1, tourPos2);
+    	}
+	}
+	
+	//Swap cities in a tour
+	private static void swapcities(Tour tour, int i, int j){
+		int tempCity = tour.getCity(i);
+		tour.setCity(i, tour.getCity(j));
+		tour.setCity(j, tempCity);
+	}
+	
+	// Calculate the acceptance probability
+    private static double acceptanceProbability(double energy, double newEnergy, double temperature) {
+        // If the new solution is better, accept it
+        if (newEnergy < energy) {
+            return 1.0;
+        }
+        // If the new solution is worse, calculate an acceptance probability
+        //if(temperature>100)
+        	return Math.exp((energy - newEnergy) / (temperature/10000));
+        //else
+        	//return Math.exp((energy - newEnergy) / (temperature));
+    }
+}

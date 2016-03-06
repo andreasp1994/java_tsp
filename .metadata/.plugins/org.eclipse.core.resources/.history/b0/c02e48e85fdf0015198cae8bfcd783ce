@@ -1,0 +1,32 @@
+package javatsp_ga;
+
+public class Population {
+
+	Tour[] 	tours;
+	int		size;
+	
+	public Population(TSP tsp){
+		size 	= 	tsp.size();
+		tours	= 	new Tour[tsp.size()];
+		
+		//Generate random tour population
+		for(int i = 0 ;i < tsp.size();i++){ tours[i] = new Tour(tsp); }
+	}
+	
+	public Tour getBest(){
+		Tour 	best		=	null;
+		double 	bestFit 	= 	0;
+		for(int i =0;i< size;i++){
+			if (tours[i].getFitness() > bestFit){
+				best = tours[i];
+			}
+		}
+		return best;
+	}
+	
+	public void replaceTour(int index, Tour tour){ tours[index] = tour; }
+	
+	public Tour getTour(int index) { return tours[index]; }
+	
+	public int size(){ return size; }
+}

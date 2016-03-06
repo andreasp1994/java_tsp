@@ -1,0 +1,233 @@
+/**
+ * Travelling Salesman Problem Genetic Algorithm Approach
+ * 
+ * Genetic algorithm implemented as described here:
+ * http://www.inf.tu-dresden.de/content/institutes/ki/cl/study/summer14/pssai/slides/GA_for_TSP.pdf
+ * 
+ * NOTE: Only Order Crossover operator implemented (OX)
+ * 
+ * RSM Mutation Operator reference:
+ * http://arxiv.org/ftp/arxiv/papers/1203/1203.3099.pdf
+ * 
+ * Author: Antreas Pogiatzis
+ */
+
+package javatsp_ga;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Scanner;
+
+import javatsp.TSP;
+import linkedlist.IntLinkedList;
+
+public class GeneticTsp {
+
+	private static int randomizer = 0;
+	private static final long randomizer_offset = 1;
+	
+	private static final boolean elitism = true;
+	private static final double crossover_rate = 1;
+	private static final double mutation_rate = 0.055;
+	private static final int population_size = 50;
+	
+	private static Random randEngine;
+	public static void main(String [] args)
+	{
+		randEngine = new Random(System.currentTimeMillis());
+		
+		try {
+			TSP myTSP = new TSP("C:\\70.tsp");
+			
+			Population pop = new Population(population_size, myTSP);
+			double distance = Double.MAX_VALUE;
+			Tour bTour = new Tour(myTSP);
+			
+			//Evolve 100 generations
+			for(int i = 1;i<=1000;i++){
+				System.out.println("-------------------------------\nGeneration: " + i);
+				pop = evolve(pop,  myTSP);
+				
+				if (pop.getBest().getDistance() < distance) {
+					distance = pop.getBest().getDistance();
+					bTour = pop.getBest();
+				}
+				
+			}
+			System.out.println("Best distance achieved:" + distance);
+			myTSP.plot(pop.getBest().getIntArray());
+			
+
+			System.out.println(pop.getBest().getDistance());
+			//System.out.println(rTour.subTour(2, 5).toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private static Population evolve(Population pop, TSP tsp){
+		Population newPopulation = new Population(pop.size());
+		
+		// Keep our best individual if elitism is enabled
+        int elitismOffset = 0;
+        if (elitism) {
+            newPopulation.replaceTour(0, pop.getBest());
+            elitismOffset = 1;
+        }
+       
+        // Crossover population
+        // Loop over the new population's size and create individuals from
+        // Current population
+        for (int i = elitismOffset; i < newPopulation.size(); i++) {
+            // Select parents
+            Tour parent1 = rouletteWheelSelection(pop);
+            Tour parent2 = rouletteWheelSelection(pop);
+            
+            Random r = new Random(System.currentTimeMillis() + randomizer);
+            randomizer += randomizer_offset;
+            
+            //Crossover
+            double doCrossover = r.nextDouble();
+            Tour child;
+            if (doCrossover < crossover_rate){
+            	child = orderCrossover(parent1, parent2, tsp);
+            }
+            else child = parent1;
+            
+            //Mutation
+            //mutate(child);
+            double doMutation = r.nextDouble();
+            if(doMutation < mutation_rate)
+            	rsmMutate(child, 2);
+            
+//            Scanner sc = new Scanner(System.in);
+//            sc.next();
+            
+            //Add child to population
+            newPopulation.replaceTour(i, child);
+            
+            }
+        System.out.println("Best distance :" + newPopulation.getBest().getDistance());
+        
+        return newPopulation;
+	}
+	
+	private static Tour rouletteWheelSelection(Population pop){
+		double 	fitSum	=	0;
+		for (int i = 0;i < pop.size();i++){
+			fitSum += pop.getTour(i).getFitness();
+		}
+		
+		Random r  = new Random(System.currentTimeMillis()+randomizer);
+		randomizer += randomizer_offset;
+		
+		//int randInt = r.nextInt((int) Math.floor(fitSum)+1);
+		double randDouble = r.nextDouble();
+		double threshold = randDouble * fitSum;
+		//System.out.println("RouletteWheel fitness Sum : " + fitSum +" Threshold: " + threshold);
+		if (threshold > fitSum) threshold = fitSum;
+		
+		//pop.sort();
+		
+		double counter = 0;
+		for (int i = 0;i < pop.size;i++){
+			//System.out.println(pop.getTour(i).getFitness());
+			counter += pop.getTour(i).getFitness();
+			if ( counter >= threshold ) {
+				return pop.getTour(i);
+			}
+		}
+		return null;
+	}
+
+	private static void mutate(Tour tour){
+		for (int i = 0;i<tour.size();i++){
+			double doMutation = randEngine.nextDouble();
+			if (doMutation < mutation_rate) {
+				int randomIndex = (int) (tour.size() * Math.random());
+				
+				int city1 = tour.getCity(i);
+				int city2 = tour.getCity(randomIndex);
+				
+				//Swap cities
+				tour.setCity(i, city2);
+				tour.setCity(randomIndex, city1);
+				
+			} 
+		}
+		
+	}
+	
+	private static void rsmMutate(Tour tour){
+		rsmMutate(tour, tour.size);
+	}
+	
+	private static void rsmMutate(Tour tour, int maxlength){
+		
+		IntLinkedList pathList = new IntLinkedList(tour.getIntArray());
+		
+		if (maxlength > pathList.size()) {
+			System.out.println("maxlength has to be less or equal than tour size."); 
+			return;
+		}
+		
+		int start = randEngine.nextInt(pathList.size() - maxlength + 1);
+		int end = randEngine.nextInt(maxlength + 1) + start;
+		
+//		System.out.println("Start: " + start + " End:" + end);
+//		Scanner sc = new Scanner(System.in);
+//		sc.next();
+//		
+		if (start==end) return;
+		
+		IntLinkedList head = pathList.sublist(0, start);
+		IntLinkedList mid = pathList.sublist(start, end);
+		IntLinkedList tail = pathList.sublist(end, pathList.size());
+		
+		mid = mid.reverse();
+	
+		//System.out.println(" Start:" + start + " end:"+ end);
+		
+		mid.append(tail);
+		if (!head.isEmpty()){
+			head.append(mid);
+			tour.setIntArray(head.toArray());
+		} else {
+			tour.setIntArray(mid.toArray());
+		}
+	}
+	
+	private static Tour orderCrossover(Tour tour1, Tour tour2, TSP tsp){
+		Random r = new Random(System.currentTimeMillis() + randomizer);
+		randomizer += randomizer_offset;
+		
+		int startpos = r.nextInt(tour1.size());
+		int endpos = r.nextInt((tour1.size() - startpos)) + startpos+1;
+		
+		Tour child = new Tour(tsp);
+		ArrayList<Integer> partialTour = new ArrayList<Integer>();
+		
+		for (int i = startpos; i < endpos;i ++){	
+				child.setCity(i, tour1.getCity(i));
+				partialTour.add(tour1.getCity(i));
+		}
+		
+		int index = endpos;
+		int picker = endpos;
+		for (int i = 0;i< child.size();i++){
+			index = index % child.size();
+			picker = picker % child.size();
+		
+			if (!partialTour.contains(tour2.getCity(picker))) {
+				child.setCity(index, tour2.getCity(picker));
+				index++;
+			}
+			picker++;
+		}
+		
+		return child;
+	}
+}

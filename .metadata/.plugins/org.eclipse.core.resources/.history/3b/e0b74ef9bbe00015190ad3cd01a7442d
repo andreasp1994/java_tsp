@@ -1,0 +1,116 @@
+package javatsp_sa;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+import javatsp.TSP;
+
+public class Tour implements Comparable<Tour> {
+
+	int [] tour;
+	double energy ;
+	TSP cities;
+	int size;
+	
+	public Tour(int size){
+		this.size	=	size;
+		cities 		= 	null;
+		energy		= 	0;
+		tour 		= 	new int[size];
+		
+		//initialize tour;
+		for (int i = 0;i<size;i++) { tour[i] = -1; }
+	}
+	
+	public Tour(TSP tsp){
+		size 		= tsp.size();
+		cities 		= tsp;
+		energy 	= 0;
+		
+		tour = new int[tsp.size()];
+		
+		//Create an array list of the city indices
+		ArrayList<Integer> cityIndices = new ArrayList<Integer>();
+		for (int i=0;i<tsp.size();i++){ cityIndices.add(i); }
+		
+		//Generate random tour;
+		Collections.shuffle(cityIndices);
+		for(int i = 0;i<tsp.size();i++){ tour[i] = cityIndices.get(i);}
+		
+		energy =  cities.cost(tour);
+	}
+	
+	public Tour(Tour tour){
+		size		=	tour.size();
+		cities		= 	tour.getTSPObject();
+		energy 	= 	tour.getEnergy();
+		
+		this.tour = tour.getIntArray();
+	}
+	
+	private TSP getTSPObject(){
+		return cities;
+	}
+	
+	public double getEnergy(){
+		return energy;
+	}
+	
+	public double getDistance(){
+		return cities.cost(tour);
+	}
+	
+	public void setCity(int index, int city){
+		tour[index] = city;
+		energy =  cities.cost(tour);
+	}
+	
+	public int getCity(int index){
+		return tour[index];
+	}
+	
+	public int[] getIntArray(){
+		return tour;
+	}
+	
+	public Tour subTour(int start, int end){
+		Tour subtour = new Tour(end - start);
+		for (int i = 0;i<size;i++){
+			if (i >= start && i < end) subtour.setCity(i-start, tour[i]);
+		}
+		return subtour;
+	}
+	
+	public int size(){
+		return size;
+	}
+	
+	public boolean containsCity(int city){
+		for(int i = 0;i<size;i++){
+			if (tour[i]==city) return true;
+		}
+		return false;
+	}
+
+	@Override
+	public String toString() {
+		String out = "";
+		for (int city : tour){
+			out += String.valueOf(city)+"-";
+		}
+		out += "END";
+		return out;
+	}
+
+	@Override
+	public int compareTo(Tour arg0) {
+		if (energy > arg0.getEnergy()){
+			return 1;
+		} else if (energy == arg0.getEnergy()){
+			return 0;
+		}
+		return -1;
+	}
+	
+	
+}

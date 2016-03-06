@@ -1,0 +1,185 @@
+package linkedlist;
+
+/** Singly linked list with just a head storing ints*/
+public class IntLinkedList {
+
+    private Node head;  //head node of the list
+    private Node tail;
+    private int size;  //number of nodes in the list
+    
+    /** Default constructor that creates an empty list */
+    public IntLinkedList(){head=null; size=0;}
+	
+    public IntLinkedList(int[] array){
+    	for (int i = 0;i<array.length;i++){
+    		this.insert(array[i]);
+    	}
+    }
+    
+    /** return the size of the list */
+    public int size(){return size;}
+	
+    /** return the head of the list*/
+    public Node getHead(){return head;}
+	
+    /**is the list empty?*/
+    public boolean isEmpty(){return head == null;}	
+	
+    /** remove node from front of list */
+    public void removeFirst() throws ListException {
+	if (!isEmpty()){head = head.getNext(); size--;}
+	else throw new ListException("attempted removal from an empty list");
+    }
+	
+    /** is the string s in the list? */
+    public boolean isPresent(int s){
+	Node cursor = head;
+	while(cursor != null){
+	    if (cursor.getElement()== s) return true;
+	    cursor = cursor.getNext();
+	}
+	return false;
+    }
+	
+    /** Add new value in non-decreasing order into list */
+    public void insert(int s){
+    Node node = new Node(s,null);;
+	if (head == null) {         
+	    head = node;
+	}else {
+		tail.setNext(node);            
+	}    
+	tail = node;    
+	size++;                                               
+    }
+    
+    public void setHead(Node node){
+    	head = node;
+    }
+   
+    /** add node to front of list containing the String s */
+    public void addFront(int s){
+	head = new Node(s,head);
+	size++;
+    }
+	
+    /** String representation of list */
+    public String toString(){
+	Node cursor = head;
+	String s = "(";
+	while(cursor != null){
+	    s = s + cursor;
+	    cursor = cursor.getNext();
+	    if (cursor != null) s = s + ",";
+	}
+	return s + ")";
+    }
+    
+    public IntLinkedList reverse(){
+	Node cursor = this.head;
+	IntLinkedList sl = new IntLinkedList();
+	while (cursor != null){
+		sl.addFront(cursor.getElement());
+		cursor = cursor.getNext();
+	}
+	return sl;
+	}
+    // 
+    // l.reverse() delivers a new StringList that has the 
+    // the elements of l in reverse order
+    //
+    
+    public IntLinkedList subTour(int start, int end){
+    	IntLinkedList newList = new IntLinkedList();
+    	Node cursor = this.head;
+    	int i = 0;
+    	while(cursor != null){
+    		if (i >= start && i < end) newList.insert(cursor.getElement());
+    		else break;
+    	}
+    	return newList;
+    }
+    
+    public int get(int i){
+	Node cursor = this.head;
+	if(!(i < 0 || i >= this.size)){
+		for(int r =0;r<i;r++){
+			cursor = cursor.getNext();
+		}
+		return cursor.getElement();
+	}
+	return -1;
+	}
+    
+    public Node getNode(int i){
+    	Node cursor = this.head;
+    	if (i < 0) return null;
+    	if (i >= size) return null;
+    	if(!(i < 0 || i >= this.size)){
+    		for(int r =0;r<i;r++){
+    			cursor = cursor.getNext();
+    		}
+    		return cursor;
+    	}
+    	return null;
+    }
+    
+
+    public Node last(){
+	return tail;
+	}
+    // 
+    // l.last() delivers the last Node in the list l.
+    // Note: this might be used when appending lists
+    //
+
+    public int[] toArray(){
+    	Node cursor = this.head;
+    	int array[] = new int[size];
+    	int i = 0;
+    	while(cursor != null){
+    		array[i] = cursor.getElement();
+    		i++;
+    		cursor = cursor.getNext();
+    	}
+    	return array;
+    }
+    
+    public void print(){
+    	Node cursor = this.head;
+    	System.out.print("(");
+    	while(cursor != null){
+    		System.out.print(cursor);
+    	    cursor = cursor.getNext();
+    	    if (cursor != null) System.out.print(",");;
+    	}
+    	System.out.print(")");
+    }
+    
+    public int indexOf(int s){
+	int index = 0;
+	Node cursor = this.head;
+	while(cursor != null){
+		if (cursor.getElement()==s){return index;} 
+		index++;
+		cursor = cursor.getNext();
+	}
+	return -1;
+	}
+    //
+    // indexOf(s) returns -1 if s is not in the list, otherwise
+    // the index of the first occurrence of s in the list
+    //
+
+//    public void replace(String s1,String s2){
+//	Node cursor = this.head;
+//	while( cursor != null){
+//		if (cursor.getElement().equals(s1)){cursor.setElement(s2);}
+//		cursor = cursor.getNext();
+//	}
+//	}
+    //
+    // replace all occurrences of s1 with s2
+    // NOTE: you need to use setElement
+    //
+}
