@@ -35,7 +35,7 @@ public class SimulatedAnnealingTsp {
 		randEngine = new Random(System.currentTimeMillis());
 		
 		try {
-			TSP myTSP = new TSP("g7k.tsp");
+			TSP myTSP = new TSP("C:\\g7k.tsp");
 			
 			// Create intial solution
 	        Tour currentSolution = new Tour(myTSP);
@@ -295,8 +295,10 @@ public class SimulatedAnnealingTsp {
         if (newEnergy < energy) {
             return 1.0;
         }
-
-        return Math.exp((energy - newEnergy) / (temperature/acceptance_offset));
-        
+        // If the new solution is worse, calculate an acceptance probability
+        //if(temperature>100)
+        	return Math.exp((energy - newEnergy) / (temperature/acceptance_offset));
+        //else
+        	//return Math.exp((energy - newEnergy) / (temperature));
     }
 }

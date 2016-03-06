@@ -35,7 +35,7 @@ public class SimulatedAnnealingTsp {
 		randEngine = new Random(System.currentTimeMillis());
 		
 		try {
-			TSP myTSP = new TSP("g7k.tsp");
+			TSP myTSP = new TSP("C:\\g7k.tsp");
 			
 			// Create intial solution
 	        Tour currentSolution = new Tour(myTSP);
